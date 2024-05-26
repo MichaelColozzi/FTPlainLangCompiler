@@ -1,0 +1,5 @@
+PitchCon:=PID(TargetElevation,PitchAngle,1,1,1) %test comment
+m:=pow(2,16)
+X := repeat (74+75* repeat (74+75* repeat (74+75* X , m ) ,m ) ,m )
+rng :=X/m
+

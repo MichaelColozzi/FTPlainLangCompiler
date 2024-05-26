@@ -1,0 +1,6 @@
+<Variables>
+    <Setter variable="PitchCon" function="PID(TargetElevation,PitchAngle,1,1,1)" activator="1" priority="0" />
+    <Setter variable="m" function="pow(2,16)" activator="1" priority="0" />
+    <Setter variable="X" function="repeat (74+75* repeat (74+75* repeat (74+75* X , m ) ,m ) ,m )" activator="1" priority="0" />
+    <Setter variable="rng" function="X/m" activator="1" priority="0" />
+</Variables>
