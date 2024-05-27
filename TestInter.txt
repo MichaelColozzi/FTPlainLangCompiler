@@ -5,5 +5,5 @@ dummy0:=A*I
 dummy1:=c*B
 dummy2:=dummy0+dummy1
 D:=dummy2
-
+v:=D(:,1)
 

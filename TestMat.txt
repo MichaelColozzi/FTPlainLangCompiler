@@ -61,5 +61,7 @@ D23:=dummy023+dummy123
 D31:=dummy031+dummy131
 D32:=dummy032+dummy132
 D33:=dummy033+dummy133
-
+v11:=D11
+v21:=D21
+v31:=D31
 
