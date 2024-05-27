@@ -47,6 +47,12 @@ std::string removeComments(const std::string& line) {
     return line;
 }
 
+// Function to escape regex special characters
+std::string escapeRegex(const std::string& str) {
+    static const std::regex specialChars(R"([-[\]{}()*+?.,\^$|#\s])");
+    return std::regex_replace(str, specialChars, R"(\$&)");
+}
+
 // Function to parse a single line of code into an AST node
 std::shared_ptr<ASTNode> parseLine(const std::string& line) {
     std::regex varAssignRegex(R"(([a-zA-Z0-9_]+)\s*:=\s*(.*?)(\s*\$\s*(.*))?)");
@@ -76,6 +82,8 @@ std::vector<std::string> preprocess(const std::string& code, std::unordered_map<
     std::regex scalarMultPattern(R"((\w+):=([a-zA-Z0-9_]+)\s*\*\s*([a-zA-Z0-9_]+))");
     std::regex elemMultPattern(R"((\w+):=([a-zA-Z0-9_]+)\.\*\s*([a-zA-Z0-9_]+))");
     std::regex addPattern(R"((\w+):=([a-zA-Z0-9_]+)\s*\+\s*([a-zA-Z0-9_]+))");
+
+    int dummyCounter = 0;
 
     while (std::getline(stream, line)) {
         line = trim(removeComments(line));
@@ -114,81 +122,36 @@ std::vector<std::string> preprocess(const std::string& code, std::unordered_map<
                     }
                 }
             }
-        } else if (std::regex_match(line, match, scalarMultPattern)) {
-            std::string resultVar = match[1];
-            std::string varA = match[2];
-            std::string varB = match[3];
-
-            bool varAIsMatrix = variableInfo[varA].isMatrix;
-            bool varBIsMatrix = variableInfo[varB].isMatrix;
-
-            if (varAIsMatrix && varBIsMatrix) {
-                // Matrix multiplication
-                int rowsA = variableInfo[varA].rows;
-                int colsA = variableInfo[varA].cols;
-                int rowsB = variableInfo[varB].rows;
-                int colsB = variableInfo[varB].cols;
-
-                variableInfo[resultVar] = VariableInfo(true, rowsA, colsB);
-                for (int i = 1; i <= rowsA; ++i) {
-                    for (int j = 1; j <= colsB; ++j) {
-                        std::string expression = "";
-                        for (int k = 1; k <= colsA; ++k) {
-                            if (k > 1) expression += "+";
-                            expression += varA + std::to_string(i) + std::to_string(k) + "*" + varB + std::to_string(k) + std::to_string(j);
-                        }
-                        expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + expression);
-                    }
-                }
-            } else if (varAIsMatrix) {
-                // Scalar multiplication (scalar * matrix)
-                int rows = variableInfo[varA].rows;
-                int cols = variableInfo[varA].cols;
-                variableInfo[resultVar] = VariableInfo(true, rows, cols);
-                for (int i = 1; i <= rows; ++i) {
-                    for (int j = 1; j <= cols; ++j) {
-                        expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + varA + std::to_string(i) + std::to_string(j) + "*" + varB);
-                    }
-                }
-            } else if (varBIsMatrix) {
-                // Scalar multiplication (scalar * matrix)
-                int rows = variableInfo[varB].rows;
-                int cols = variableInfo[varB].cols;
-                variableInfo[resultVar] = VariableInfo(true, rows, cols);
-                for (int i = 1; i <= rows; ++i) {
-                    for (int j = 1; j <= cols; ++j) {
-                        expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + varA + "*" + varB + std::to_string(i) + std::to_string(j));
-                    }
-                }
-            }
-        } else if (std::regex_match(line, match, elemMultPattern)) {
-            std::string resultVar = match[1];
-            std::string matrixVarA = match[2];
-            std::string matrixVarB = match[3];
-
-            int rows = variableInfo[matrixVarA].rows;
-            int cols = variableInfo[matrixVarA].cols;
-            variableInfo[resultVar] = VariableInfo(true, rows, cols);
-            for (int i = 1; i <= rows; ++i) {
-                for (int j = 1; j <= cols; ++j) {
-                    expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + matrixVarA + std::to_string(i) + std::to_string(j) + ".*" + matrixVarB + std::to_string(i) + std::to_string(j));
-                }
-            }
-        } else if (std::regex_match(line, match, addPattern)) {
-            std::string resultVar = match[1];
-            std::string matrixVarA = match[2];
-            std::string matrixVarB = match[3];
-
-            int rows = variableInfo[matrixVarA].rows;
-            int cols = variableInfo[matrixVarA].cols;
-            variableInfo[resultVar] = VariableInfo(true, rows, cols);
-            for (int i = 1; i <= rows; ++i) {
-                for (int j = 1; j <= cols; ++j) {
-                    expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + matrixVarA + std::to_string(i) + std::to_string(j) + "+" + matrixVarB + std::to_string(i) + std::to_string(j));
-                }
-            }
         } else {
-            expandedLines.push_back(line); // No preprocessing needed for this line
+            // Preprocess composed operations
+            std::regex composedOpPattern(R"((\w+):=\s*(.+))");
+            if (std::regex_match(line, match, composedOpPattern)) {
+                std::string resultVar = match[1];
+                std::string expression = match[2];
+
+                // Replace all composed operations with dummy variables
+                std::regex scalarMultRegex(R"(([a-zA-Z0-9_]+)\s*\*\s*([a-zA-Z0-9_]+))");
+                std::regex elemMultRegex(R"(([a-zA-Z0-9_]+)\s*\.\*\s*([a-zA-Z0-9_]+))");
+                std::regex addRegex(R"(([a-zA-Z0-9_]+)\s*\+\s*([a-zA-Z0-9_]+))");
+
+                std::smatch subMatch;
+                while (std::regex_search(expression, subMatch, scalarMultRegex) || std::regex_search(expression, subMatch, elemMultRegex) || std::regex_search(expression, subMatch, addRegex)) {
+                    std::string op1 = subMatch[1];
+                    std::string op2 = subMatch[2];
+                    std::string op = subMatch[0];
+
+                    std::string dummyVar = "dummy" + std::to_string(dummyCounter++);
+                    std::string dummyAssign = dummyVar + ":=" + op;
+
+                    expandedLines.push_back(dummyAssign);
+
+                    expression = std::regex_replace(expression, std::regex(escapeRegex(op)), dummyVar);
+                }
+
+                expandedLines.push_back(resultVar + ":=" + expression);
+            } else {
+                expandedLines.push_back(line);
+            }
         }
     }
 

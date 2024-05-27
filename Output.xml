@@ -17,8 +17,9 @@
     <Setter variable="I31" function="0" activator="1" priority="0" />
     <Setter variable="I32" function="0" activator="1" priority="0" />
     <Setter variable="I33" function="1" activator="1" priority="0" />
-    <Setter variable="B11" function="A*I11" activator="1" priority="0" />
-    <Setter variable="B12" function="A*I12" activator="1" priority="0" />
-    <Setter variable="B21" function="A*I21" activator="1" priority="0" />
-    <Setter variable="B22" function="A*I22" activator="1" priority="0" />
+    <Setter variable="dummy0" function="c*I" activator="1" priority="0" />
+    <Setter variable="dummy1" function="A*I" activator="1" priority="0" />
+    <Setter variable="dummy2" function="dummy0+dummy1" activator="1" priority="0" />
+    <Setter variable="dummy3" function="dummy2+B" activator="1" priority="0" />
+    <Setter variable="B" function="dummy3" activator="1" priority="0" />
 </Variables>

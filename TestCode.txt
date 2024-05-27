@@ -1,4 +1,4 @@
 A:=zeros(3,3)
 I:=eye(3)
-B:=A*I
+B:=c*I+A*I+B
 
