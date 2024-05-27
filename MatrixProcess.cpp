@@ -205,23 +205,6 @@ std::vector<std::string> formatMatrixOperations(const std::string& code, std::un
                         formattedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + op1 + std::to_string(i) + std::to_string(j) + "+" + op2 + std::to_string(i) + std::to_string(j));
                     }
                 }
-            } else if (std::regex_search(expression, subMatch, matrixAssignPattern)) {
-                std::string sourceMatrix = subMatch[2];
-                std::string destMatrix = subMatch[1];
-
-                if (variableInfo.find(sourceMatrix) != variableInfo.end() && variableInfo[sourceMatrix].isMatrix) {
-                    int rows = variableInfo[sourceMatrix].rows;
-                    int cols = variableInfo[sourceMatrix].cols;
-                    variableInfo[destMatrix] = VariableInfo(true, rows, cols);
-
-                    for (int i = 1; i <= rows; ++i) {
-                        for (int j = 1; j <= cols; ++j) {
-                            formattedLines.push_back(destMatrix + std::to_string(i) + std::to_string(j) + ":=" + sourceMatrix + std::to_string(i) + std::to_string(j));
-                        }
-                    }
-                } else {
-                    formattedLines.push_back(line);
-                }
             } else {
                 formattedLines.push_back(line);
             }
@@ -231,6 +214,40 @@ std::vector<std::string> formatMatrixOperations(const std::string& code, std::un
     }
 
     return formattedLines;
+}
+
+// Function to perform the final pass for expanding matrix assignments
+std::vector<std::string> expandMatrixAssignments(const std::vector<std::string>& formattedLines, const std::unordered_map<std::string, VariableInfo>& variableInfo) {
+    std::vector<std::string> expandedLines;
+    std::regex matrixAssignPattern(R"((\w+):=(\w+))");
+
+    for (const std::string& line : formattedLines) {
+        std::smatch match;
+        if (std::regex_match(line, match, matrixAssignPattern)) {
+            std::string destVar = match[1];
+            std::string sourceVar = match[2];
+
+            auto destInfoIt = variableInfo.find(destVar);
+            auto sourceInfoIt = variableInfo.find(sourceVar);
+
+            if (destInfoIt != variableInfo.end() && sourceInfoIt != variableInfo.end() && destInfoIt->second.isMatrix && sourceInfoIt->second.isMatrix) {
+                int rows = sourceInfoIt->second.rows;
+                int cols = sourceInfoIt->second.cols;
+
+                for (int i = 1; i <= rows; ++i) {
+                    for (int j = 1; j <= cols; ++j) {
+                        expandedLines.push_back(destVar + std::to_string(i) + std::to_string(j) + ":=" + sourceVar + std::to_string(i) + std::to_string(j));
+                    }
+                }
+            } else {
+                expandedLines.push_back(line);
+            }
+        } else {
+            expandedLines.push_back(line);
+        }
+    }
+
+    return expandedLines;
 }
 
 int main(int argc, char* argv[]) {
@@ -264,13 +281,20 @@ int main(int argc, char* argv[]) {
     variableInfo["D"] = VariableInfo(true, 2, 3);
     variableInfo["F"] = VariableInfo(true, 2, 2);
     variableInfo["I"] = VariableInfo(true, 3, 3);
+    variableInfo["dummy0"] = VariableInfo(true, 3, 3);
+    variableInfo["dummy1"] = VariableInfo(true, 3, 3);
+    variableInfo["dummy2"] = VariableInfo(true, 3, 3);
 
     auto formattedLines = formatMatrixOperations(code, variableInfo);
+    auto expandedLines = expandMatrixAssignments(formattedLines, variableInfo);
 
-    // Write formatted lines to the output file
-    for (const auto& line : formattedLines) {
+    // Write expanded lines to the output file
+    for (const auto& line : expandedLines) {
         outfile << line << "\n";
     }
 
     return 0;
 }
+
+
+
