@@ -1,0 +1,12 @@
+A:=zeros(3,3)
+I:=eye(3)
+dummy0:=c*I
+dummy1:=A*I
+dummy2:=dummy0+dummy1
+dummy3:=dummy2+B
+B:=dummy3
+dummy4:=A+I
+dummy5:=dummy4+B
+C:=dummy5
+v:=C(:,1)
+

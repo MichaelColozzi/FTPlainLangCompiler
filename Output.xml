@@ -22,4 +22,7 @@
     <Setter variable="dummy2" function="dummy0+dummy1" activator="1" priority="0" />
     <Setter variable="dummy3" function="dummy2+B" activator="1" priority="0" />
     <Setter variable="B" function="dummy3" activator="1" priority="0" />
+    <Setter variable="dummy4" function="A+I" activator="1" priority="0" />
+    <Setter variable="dummy5" function="dummy4+B" activator="1" priority="0" />
+    <Setter variable="C" function="dummy5" activator="1" priority="0" />
 </Variables>
