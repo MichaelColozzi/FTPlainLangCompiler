@@ -1,13 +1,22 @@
 <Variables>
-    <Setter variable="A11" function="0" activator="1" priority="0" />
-    <Setter variable="A12" function="0" activator="1" priority="0" />
-    <Setter variable="A13" function="0" activator="1" priority="0" />
-    <Setter variable="A21" function="0" activator="1" priority="0" />
-    <Setter variable="A22" function="0" activator="1" priority="0" />
-    <Setter variable="A23" function="0" activator="1" priority="0" />
-    <Setter variable="A31" function="0" activator="1" priority="0" />
-    <Setter variable="A32" function="0" activator="1" priority="0" />
-    <Setter variable="A33" function="0" activator="1" priority="0" />
+    <Setter variable="A11" function="1" activator="1" priority="0" />
+    <Setter variable="A12" function="1" activator="1" priority="0" />
+    <Setter variable="A13" function="1" activator="1" priority="0" />
+    <Setter variable="A21" function="1" activator="1" priority="0" />
+    <Setter variable="A22" function="1" activator="1" priority="0" />
+    <Setter variable="A23" function="1" activator="1" priority="0" />
+    <Setter variable="A31" function="1" activator="1" priority="0" />
+    <Setter variable="A32" function="1" activator="1" priority="0" />
+    <Setter variable="A33" function="1" activator="1" priority="0" />
+    <Setter variable="B11" function="0" activator="1" priority="0" />
+    <Setter variable="B12" function="0" activator="1" priority="0" />
+    <Setter variable="B13" function="0" activator="1" priority="0" />
+    <Setter variable="B21" function="0" activator="1" priority="0" />
+    <Setter variable="B22" function="0" activator="1" priority="0" />
+    <Setter variable="B23" function="0" activator="1" priority="0" />
+    <Setter variable="B31" function="0" activator="1" priority="0" />
+    <Setter variable="B32" function="0" activator="1" priority="0" />
+    <Setter variable="B33" function="0" activator="1" priority="0" />
     <Setter variable="I11" function="1" activator="1" priority="0" />
     <Setter variable="I12" function="0" activator="1" priority="0" />
     <Setter variable="I13" function="0" activator="1" priority="0" />
@@ -17,12 +26,43 @@
     <Setter variable="I31" function="0" activator="1" priority="0" />
     <Setter variable="I32" function="0" activator="1" priority="0" />
     <Setter variable="I33" function="1" activator="1" priority="0" />
-    <Setter variable="dummy0" function="c*I" activator="1" priority="0" />
-    <Setter variable="dummy1" function="A*I" activator="1" priority="0" />
-    <Setter variable="dummy2" function="dummy0+dummy1" activator="1" priority="0" />
-    <Setter variable="dummy3" function="dummy2+B" activator="1" priority="0" />
-    <Setter variable="B" function="dummy3" activator="1" priority="0" />
-    <Setter variable="dummy4" function="A+I" activator="1" priority="0" />
-    <Setter variable="dummy5" function="dummy4+B" activator="1" priority="0" />
-    <Setter variable="C" function="dummy5" activator="1" priority="0" />
+    <Setter variable="dummy011" function="A11*I11+A12*I21+A13*I31" activator="1" priority="0" />
+    <Setter variable="dummy012" function="A11*I12+A12*I22+A13*I32" activator="1" priority="0" />
+    <Setter variable="dummy013" function="A11*I13+A12*I23+A13*I33" activator="1" priority="0" />
+    <Setter variable="dummy021" function="A21*I11+A22*I21+A23*I31" activator="1" priority="0" />
+    <Setter variable="dummy022" function="A21*I12+A22*I22+A23*I32" activator="1" priority="0" />
+    <Setter variable="dummy023" function="A21*I13+A22*I23+A23*I33" activator="1" priority="0" />
+    <Setter variable="dummy031" function="A31*I11+A32*I21+A33*I31" activator="1" priority="0" />
+    <Setter variable="dummy032" function="A31*I12+A32*I22+A33*I32" activator="1" priority="0" />
+    <Setter variable="dummy033" function="A31*I13+A32*I23+A33*I33" activator="1" priority="0" />
+    <Setter variable="dummy111" function="c*B11" activator="1" priority="0" />
+    <Setter variable="dummy112" function="c*B12" activator="1" priority="0" />
+    <Setter variable="dummy113" function="c*B13" activator="1" priority="0" />
+    <Setter variable="dummy121" function="c*B21" activator="1" priority="0" />
+    <Setter variable="dummy122" function="c*B22" activator="1" priority="0" />
+    <Setter variable="dummy123" function="c*B23" activator="1" priority="0" />
+    <Setter variable="dummy131" function="c*B31" activator="1" priority="0" />
+    <Setter variable="dummy132" function="c*B32" activator="1" priority="0" />
+    <Setter variable="dummy133" function="c*B33" activator="1" priority="0" />
+    <Setter variable="dummy211" function="dummy011+dummy111" activator="1" priority="0" />
+    <Setter variable="dummy212" function="dummy012+dummy112" activator="1" priority="0" />
+    <Setter variable="dummy213" function="dummy013+dummy113" activator="1" priority="0" />
+    <Setter variable="dummy221" function="dummy021+dummy121" activator="1" priority="0" />
+    <Setter variable="dummy222" function="dummy022+dummy122" activator="1" priority="0" />
+    <Setter variable="dummy223" function="dummy023+dummy123" activator="1" priority="0" />
+    <Setter variable="dummy231" function="dummy031+dummy131" activator="1" priority="0" />
+    <Setter variable="dummy232" function="dummy032+dummy132" activator="1" priority="0" />
+    <Setter variable="dummy233" function="dummy033+dummy133" activator="1" priority="0" />
+    <Setter variable="D11" function="dummy011+dummy111" activator="1" priority="0" />
+    <Setter variable="D12" function="dummy012+dummy112" activator="1" priority="0" />
+    <Setter variable="D13" function="dummy013+dummy113" activator="1" priority="0" />
+    <Setter variable="D21" function="dummy021+dummy121" activator="1" priority="0" />
+    <Setter variable="D22" function="dummy022+dummy122" activator="1" priority="0" />
+    <Setter variable="D23" function="dummy023+dummy123" activator="1" priority="0" />
+    <Setter variable="D31" function="dummy031+dummy131" activator="1" priority="0" />
+    <Setter variable="D32" function="dummy032+dummy132" activator="1" priority="0" />
+    <Setter variable="D33" function="dummy033+dummy133" activator="1" priority="0" />
+    <Setter variable="v11" function="D11" activator="1" priority="0" />
+    <Setter variable="v21" function="D21" activator="1" priority="0" />
+    <Setter variable="v31" function="D31" activator="1" priority="0" />
 </Variables>
