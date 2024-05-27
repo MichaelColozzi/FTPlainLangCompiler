@@ -5,6 +5,7 @@
 #include <string>
 #include <regex>
 #include <memory>
+#include <unordered_map>
 
 enum NodeType { VAR_ASSIGN };
 
@@ -50,15 +51,116 @@ std::shared_ptr<ASTNode> parseLine(const std::string& line) {
     return nullptr;
 }
 
-std::vector<std::shared_ptr<ASTNode>> parseCode(const std::string& code) {
-    std::vector<std::shared_ptr<ASTNode>> nodes;
+std::vector<std::string> preprocess(const std::string& code) {
+    std::vector<std::string> expandedLines;
     std::istringstream stream(code);
     std::string line;
+    std::regex zerosPattern(R"((\w+):=zeros\((\d+),(\d+)\))");
+    std::regex onesPattern(R"((\w+):=ones\((\d+),(\d+)\))");
+    std::regex eyePattern(R"((\w+):=eye\((\d+)\))");
+    std::regex scalarMultPattern(R"((\w+):=([a-zA-Z0-9_]+)\s*\*\s*([a-zA-Z0-9_]+))");
+    std::regex elemMultPattern(R"((\w+):=([a-zA-Z0-9_]+)\.\*\s*([a-zA-Z0-9_]+))");
+    std::regex addPattern(R"((\w+):=([a-zA-Z0-9_]+)\s*\+\s*([a-zA-Z0-9_]+))");
+    std::regex matMultPattern(R"((\w+):=([a-zA-Z0-9_]+)\s*\*\s*([a-zA-Z0-9_]+))");
 
     while (std::getline(stream, line)) {
         line = trim(removeComments(line));
-        if (line.empty()) continue;
+        std::smatch match;
 
+        if (std::regex_match(line, match, zerosPattern)) {
+            std::string var = match[1];
+            int rows = std::stoi(match[2]);
+            int cols = std::stoi(match[3]);
+            for (int i = 1; i <= rows; ++i) {
+                for (int j = 1; j
+<= cols; ++j) {
+                    expandedLines.push_back(var + std::to_string(i) + std::to_string(j) + ":=0");
+                }
+            }
+        } else if (std::regex_match(line, match, onesPattern)) {
+            std::string var = match[1];
+            int rows = std::stoi(match[2]);
+            int cols = std::stoi(match[3]);
+            for (int i = 1; i <= rows; ++i) {
+                for (int j = 1; j <= cols; ++j) {
+                    expandedLines.push_back(var + std::to_string(i) + std::to_string(j) + ":=1");
+                }
+            }
+        } else if (std::regex_match(line, match, eyePattern)) {
+            std::string var = match[1];
+            int n = std::stoi(match[2]);
+            for (int i = 1; i <= n; ++i) {
+                for (int j = 1; j <= n; ++j) {
+                    if (i == j) {
+                        expandedLines.push_back(var + std::to_string(i) + std::to_string(j) + ":=1");
+                    } else {
+                        expandedLines.push_back(var + std::to_string(i) + std::to_string(j) + ":=0");
+                    }
+                }
+            }
+        } else if (std::regex_match(line, match, scalarMultPattern)) {
+            std::string resultVar = match[1];
+            std::string scalarVar = match[2];
+            std::string matrixVar = match[3];
+            int rows = 2; // Define rows based on your context or infer from inputs
+            int cols = 2; // Define cols based on your context or infer from inputs
+            for (int i = 1; i <= rows; ++i) {
+                for (int j = 1; j <= cols; ++j) {
+                    expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + scalarVar + "*" + matrixVar + std::to_string(i) + std::to_string(j));
+                }
+            }
+        } else if (std::regex_match(line, match, elemMultPattern)) {
+            std::string resultVar = match[1];
+            std::string matrixVarA = match[2];
+            std::string matrixVarB = match[3];
+            int rows = 2; // Define rows based on your context or infer from inputs
+            int cols = 2; // Define cols based on your context or infer from inputs
+            for (int i = 1; i <= rows; ++i) {
+                for (int j = 1; j <= cols; ++j) {
+                    expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + matrixVarA + std::to_string(i) + std::to_string(j) + ".*" + matrixVarB + std::to_string(i) + std::to_string(j));
+                }
+            }
+        } else if (std::regex_match(line, match, addPattern)) {
+            std::string resultVar = match[1];
+            std::string matrixVarA = match[2];
+            std::string matrixVarB = match[3];
+            int rows = 2; // Define rows based on your context or infer from inputs
+            int cols = 2; // Define cols based on your context or infer from inputs
+            for (int i = 1; i <= rows; ++i) {
+                for (int j = 1; j <= cols; ++j) {
+                    expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + matrixVarA + std::to_string(i) + std::to_string(j) + "+" + matrixVarB + std::to_string(i) + std::to_string(j));
+                }
+            }
+        } else if (std::regex_match(line, match, matMultPattern)) {
+            std::string resultVar = match[1];
+            std::string matrixVarA = match[2];
+            std::string matrixVarB = match[3];
+            int rowsA = 2; // Define rows of A based on your context or infer from inputs
+            int colsA = 2; // Define cols of A (and rows of B) based on your context or infer from inputs
+            int colsB = 2; // Define cols of B based on your context or infer from inputs
+            for (int i = 1; i <= rowsA; ++i) {
+                for (int j = 1; j <= colsB; ++j) {
+                    std::string expression = "";
+                    for (int k = 1; k <= colsA; ++k) {
+                        if (k > 1) expression += "+";
+                        expression += matrixVarA + std::to_string(i) + std::to_string(k) + "*" + matrixVarB + std::to_string(k) + std::to_string(j);
+                    }
+                    expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + expression);
+                }
+            }
+        } else {
+            expandedLines.push_back(line); // No preprocessing needed for this line
+        }
+    }
+
+    return expandedLines;
+}
+
+std::vector<std::shared_ptr<ASTNode>> parseCode(const std::string& code) {
+    std::vector<std::shared_ptr<ASTNode>> nodes;
+    auto lines = preprocess(code);
+
+    for (const auto& line : lines) {
         auto node = parseLine(line);
         if (node) {
             nodes.push_back(node);
@@ -105,5 +207,6 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
 
 
