@@ -1,7 +1,6 @@
 A:=ones(3,3)
 B:=zeros(3,3)
 I:=eye(3)
-
 dummy0:=A*I
 dummy1:=c*B
 dummy2:=dummy0+dummy1

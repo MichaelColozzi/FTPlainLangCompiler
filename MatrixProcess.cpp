@@ -38,18 +38,42 @@ std::string escapeRegex(const std::string& str) {
     return std::regex_replace(str, specialChars, R"(\$&)");
 }
 
+// Function to convert dummy variable assignments to direct assignments
+std::vector<std::string> convertDummyAssignments(const std::vector<std::string>& lines) {
+    std::vector<std::string> convertedLines;
+    std::unordered_map<std::string, std::string> dummyAssignments;
+    std::regex assignPattern(R"((\w+):=(.*))");
+
+    for (const std::string& line : lines) {
+        std::smatch match;
+        if (std::regex_match(line, match, assignPattern)) {
+            std::string var = match[1];
+            std::string expr = match[2];
+            if (dummyAssignments.find(expr) != dummyAssignments.end()) {
+                // Replace dummy variable with actual expression
+                convertedLines.push_back(var + ":=" + dummyAssignments[expr]);
+            } else {
+                convertedLines.push_back(line);
+                dummyAssignments[var] = expr;
+            }
+        } else {
+            convertedLines.push_back(line);
+        }
+    }
+
+    return convertedLines;
+}
+
 // Function to format matrix operations including slicing, indexing, and initialization
-std::vector<std::string> formatMatrixOperations(const std::string& code, std::unordered_map<std::string, VariableInfo>& variableInfo) {
+std::vector<std::string> formatMatrixOperations(const std::vector<std::string>& lines, std::unordered_map<std::string, VariableInfo>& variableInfo) {
     std::vector<std::string> formattedLines;
-    std::istringstream stream(code);
-    std::string line;
     std::regex varAssignPattern(R"((\w+):=(.*))");
 
-    while (std::getline(stream, line)) {
-        line = trim(removeComments(line));
+    for (const std::string& line : lines) {
+        std::string trimmedLine = trim(removeComments(line));
         std::smatch match;
 
-        if (std::regex_match(line, match, varAssignPattern)) {
+        if (std::regex_match(trimmedLine, match, varAssignPattern)) {
             std::string resultVar = match[1];
             std::string expression = match[2];
 
@@ -67,7 +91,7 @@ std::vector<std::string> formatMatrixOperations(const std::string& code, std::un
 
             // Match for matrix initialization
             std::smatch subMatch;
-            if (std::regex_search(line, match, zerosPattern)) {
+            if (std::regex_search(trimmedLine, match, zerosPattern)) {
                 std::string var = match[1];
                 int rows = std::stoi(match[2]);
                 int cols = std::stoi(match[3]);
@@ -77,7 +101,7 @@ std::vector<std::string> formatMatrixOperations(const std::string& code, std::un
                         formattedLines.push_back(var + std::to_string(i) + std::to_string(j) + ":=0");
                     }
                 }
-            } else if (std::regex_search(line, match, onesPattern)) {
+            } else if (std::regex_search(trimmedLine, match, onesPattern)) {
                 std::string var = match[1];
                 int rows = std::stoi(match[2]);
                 int cols = std::stoi(match[3]);
@@ -87,7 +111,7 @@ std::vector<std::string> formatMatrixOperations(const std::string& code, std::un
                         formattedLines.push_back(var + std::to_string(i) + std::to_string(j) + ":=1");
                     }
                 }
-            } else if (std::regex_search(line, match, eyePattern)) {
+            } else if (std::regex_search(trimmedLine, match, eyePattern)) {
                 std::string var = match[1];
                 int n = std::stoi(match[2]);
                 variableInfo[var] = VariableInfo(true, n, n);
@@ -217,7 +241,7 @@ std::vector<std::string> formatMatrixOperations(const std::string& code, std::un
 }
 
 // Function to perform the final pass for expanding matrix assignments
-std::vector<std::string> expandMatrixAssignments(const std::vector<std::string>& formattedLines, const std::unordered_map<std::string, VariableInfo>& variableInfo) {
+std::vector<std::string> expandMatrixAssignments(const std::vector<std::string>& formattedLines, std::unordered_map<std::string, VariableInfo>& variableInfo) {
     std::vector<std::string> expandedLines;
     std::regex matrixAssignPattern(R"((\w+):=(\w+))");
 
@@ -272,20 +296,20 @@ int main(int argc, char* argv[]) {
     buffer << infile.rdbuf();
     std::string code = buffer.str();
 
+    // Split the code into lines
+    std::istringstream codeStream(code);
+    std::vector<std::string> lines;
+    std::string tempLine;
+    while (std::getline(codeStream, tempLine)) {
+        lines.push_back(tempLine);
+    }
+
     // Define variable information based on expected matrix dimensions
     std::unordered_map<std::string, VariableInfo> variableInfo;
-    // Example: populate with known matrix dimensions
-    variableInfo["A"] = VariableInfo(true, 2, 3);
-    variableInfo["B"] = VariableInfo(true, 2, 3);
-    variableInfo["C"] = VariableInfo(true, 2, 3);
-    variableInfo["D"] = VariableInfo(true, 2, 3);
-    variableInfo["F"] = VariableInfo(true, 2, 2);
-    variableInfo["I"] = VariableInfo(true, 3, 3);
-    variableInfo["dummy0"] = VariableInfo(true, 3, 3);
-    variableInfo["dummy1"] = VariableInfo(true, 3, 3);
-    variableInfo["dummy2"] = VariableInfo(true, 3, 3);
 
-    auto formattedLines = formatMatrixOperations(code, variableInfo);
+    // First, convert dummy assignments to direct assignments
+    std::vector<std::string> convertedLines = convertDummyAssignments(lines);
+    auto formattedLines = formatMatrixOperations(convertedLines, variableInfo);
     auto expandedLines = expandMatrixAssignments(formattedLines, variableInfo);
 
     // Write expanded lines to the output file
@@ -295,6 +319,8 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+
 
 
 

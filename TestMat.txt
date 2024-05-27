@@ -25,7 +25,6 @@ I23:=0
 I31:=0
 I32:=0
 I33:=1
-
 dummy011:=A11*I11+A12*I21+A13*I31
 dummy012:=A11*I12+A12*I22+A13*I32
 dummy013:=A11*I13+A12*I23+A13*I33
@@ -53,14 +52,14 @@ dummy223:=dummy023+dummy123
 dummy231:=dummy031+dummy131
 dummy232:=dummy032+dummy132
 dummy233:=dummy033+dummy133
-D11:=dummy211
-D12:=dummy212
-D13:=dummy213
-D21:=dummy221
-D22:=dummy222
-D23:=dummy223
-D31:=dummy231
-D32:=dummy232
-D33:=dummy233
+D11:=dummy011+dummy111
+D12:=dummy012+dummy112
+D13:=dummy013+dummy113
+D21:=dummy021+dummy121
+D22:=dummy022+dummy122
+D23:=dummy023+dummy123
+D31:=dummy031+dummy131
+D32:=dummy032+dummy132
+D33:=dummy033+dummy133
 
 
