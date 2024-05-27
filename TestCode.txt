@@ -1,7 +1,6 @@
 A:=ones(3,3)
 B:=zeros(3,3)
 I:=eye(3)
-
 D:=A*I+c*B
 
 
