@@ -1,6 +1,24 @@
 <Variables>
-    <Setter variable="PitchCon" function="PID(TargetElevation,PitchAngle,1,1,1)" activator="1" priority="0" />
-    <Setter variable="m" function="pow(2,16)" activator="1" priority="0" />
-    <Setter variable="X" function="repeat (74+75* repeat (74+75* repeat (74+75* X , m ) ,m ) ,m )" activator="1" priority="0" />
-    <Setter variable="rng" function="X/m" activator="1" priority="0" />
+    <Setter variable="A11" function="0" activator="1" priority="0" />
+    <Setter variable="A12" function="0" activator="1" priority="0" />
+    <Setter variable="A13" function="0" activator="1" priority="0" />
+    <Setter variable="A21" function="0" activator="1" priority="0" />
+    <Setter variable="A22" function="0" activator="1" priority="0" />
+    <Setter variable="A23" function="0" activator="1" priority="0" />
+    <Setter variable="A31" function="0" activator="1" priority="0" />
+    <Setter variable="A32" function="0" activator="1" priority="0" />
+    <Setter variable="A33" function="0" activator="1" priority="0" />
+    <Setter variable="I11" function="1" activator="1" priority="0" />
+    <Setter variable="I12" function="0" activator="1" priority="0" />
+    <Setter variable="I13" function="0" activator="1" priority="0" />
+    <Setter variable="I21" function="0" activator="1" priority="0" />
+    <Setter variable="I22" function="1" activator="1" priority="0" />
+    <Setter variable="I23" function="0" activator="1" priority="0" />
+    <Setter variable="I31" function="0" activator="1" priority="0" />
+    <Setter variable="I32" function="0" activator="1" priority="0" />
+    <Setter variable="I33" function="1" activator="1" priority="0" />
+    <Setter variable="B11" function="A*I11" activator="1" priority="0" />
+    <Setter variable="B12" function="A*I12" activator="1" priority="0" />
+    <Setter variable="B21" function="A*I21" activator="1" priority="0" />
+    <Setter variable="B22" function="A*I22" activator="1" priority="0" />
 </Variables>

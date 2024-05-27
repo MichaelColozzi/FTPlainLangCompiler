@@ -7,8 +7,10 @@
 #include <memory>
 #include <unordered_map>
 
+// Define enumeration for node types
 enum NodeType { VAR_ASSIGN };
 
+// Define structure for AST nodes
 struct ASTNode {
     NodeType type;
     std::string variable;
@@ -19,6 +21,16 @@ struct ASTNode {
         : type(t), variable(var), expression(expr), activator(act) {}
 };
 
+// Define structure to hold variable metadata
+struct VariableInfo {
+    bool isMatrix;
+    int rows;
+    int cols;
+
+    VariableInfo(bool isMat = false, int r = 0, int c = 0) : isMatrix(isMat), rows(r), cols(c) {}
+};
+
+// Function to trim whitespace from a string
 std::string trim(const std::string& str) {
     size_t first = str.find_first_not_of(' ');
     if (first == std::string::npos) return "";
@@ -26,6 +38,7 @@ std::string trim(const std::string& str) {
     return str.substr(first, last - first + 1);
 }
 
+// Function to remove comments from a line of code
 std::string removeComments(const std::string& line) {
     size_t pos = line.find('%');
     if (pos != std::string::npos) {
@@ -34,6 +47,7 @@ std::string removeComments(const std::string& line) {
     return line;
 }
 
+// Function to parse a single line of code into an AST node
 std::shared_ptr<ASTNode> parseLine(const std::string& line) {
     std::regex varAssignRegex(R"(([a-zA-Z0-9_]+)\s*:=\s*(.*?)(\s*\$\s*(.*))?)");
     std::smatch match;
@@ -51,7 +65,8 @@ std::shared_ptr<ASTNode> parseLine(const std::string& line) {
     return nullptr;
 }
 
-std::vector<std::string> preprocess(const std::string& code) {
+// Function to expand matrix operations into individual variable assignments
+std::vector<std::string> preprocess(const std::string& code, std::unordered_map<std::string, VariableInfo>& variableInfo) {
     std::vector<std::string> expandedLines;
     std::istringstream stream(code);
     std::string line;
@@ -61,7 +76,6 @@ std::vector<std::string> preprocess(const std::string& code) {
     std::regex scalarMultPattern(R"((\w+):=([a-zA-Z0-9_]+)\s*\*\s*([a-zA-Z0-9_]+))");
     std::regex elemMultPattern(R"((\w+):=([a-zA-Z0-9_]+)\.\*\s*([a-zA-Z0-9_]+))");
     std::regex addPattern(R"((\w+):=([a-zA-Z0-9_]+)\s*\+\s*([a-zA-Z0-9_]+))");
-    std::regex matMultPattern(R"((\w+):=([a-zA-Z0-9_]+)\s*\*\s*([a-zA-Z0-9_]+))");
 
     while (std::getline(stream, line)) {
         line = trim(removeComments(line));
@@ -71,9 +85,9 @@ std::vector<std::string> preprocess(const std::string& code) {
             std::string var = match[1];
             int rows = std::stoi(match[2]);
             int cols = std::stoi(match[3]);
+            variableInfo[var] = VariableInfo(true, rows, cols);
             for (int i = 1; i <= rows; ++i) {
-                for (int j = 1; j
-<= cols; ++j) {
+                for (int j = 1; j <= cols; ++j) {
                     expandedLines.push_back(var + std::to_string(i) + std::to_string(j) + ":=0");
                 }
             }
@@ -81,6 +95,7 @@ std::vector<std::string> preprocess(const std::string& code) {
             std::string var = match[1];
             int rows = std::stoi(match[2]);
             int cols = std::stoi(match[3]);
+            variableInfo[var] = VariableInfo(true, rows, cols);
             for (int i = 1; i <= rows; ++i) {
                 for (int j = 1; j <= cols; ++j) {
                     expandedLines.push_back(var + std::to_string(i) + std::to_string(j) + ":=1");
@@ -89,6 +104,7 @@ std::vector<std::string> preprocess(const std::string& code) {
         } else if (std::regex_match(line, match, eyePattern)) {
             std::string var = match[1];
             int n = std::stoi(match[2]);
+            variableInfo[var] = VariableInfo(true, n, n);
             for (int i = 1; i <= n; ++i) {
                 for (int j = 1; j <= n; ++j) {
                     if (i == j) {
@@ -100,21 +116,59 @@ std::vector<std::string> preprocess(const std::string& code) {
             }
         } else if (std::regex_match(line, match, scalarMultPattern)) {
             std::string resultVar = match[1];
-            std::string scalarVar = match[2];
-            std::string matrixVar = match[3];
-            int rows = 2; // Define rows based on your context or infer from inputs
-            int cols = 2; // Define cols based on your context or infer from inputs
-            for (int i = 1; i <= rows; ++i) {
-                for (int j = 1; j <= cols; ++j) {
-                    expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + scalarVar + "*" + matrixVar + std::to_string(i) + std::to_string(j));
+            std::string varA = match[2];
+            std::string varB = match[3];
+
+            bool varAIsMatrix = variableInfo[varA].isMatrix;
+            bool varBIsMatrix = variableInfo[varB].isMatrix;
+
+            if (varAIsMatrix && varBIsMatrix) {
+                // Matrix multiplication
+                int rowsA = variableInfo[varA].rows;
+                int colsA = variableInfo[varA].cols;
+                int rowsB = variableInfo[varB].rows;
+                int colsB = variableInfo[varB].cols;
+
+                variableInfo[resultVar] = VariableInfo(true, rowsA, colsB);
+                for (int i = 1; i <= rowsA; ++i) {
+                    for (int j = 1; j <= colsB; ++j) {
+                        std::string expression = "";
+                        for (int k = 1; k <= colsA; ++k) {
+                            if (k > 1) expression += "+";
+                            expression += varA + std::to_string(i) + std::to_string(k) + "*" + varB + std::to_string(k) + std::to_string(j);
+                        }
+                        expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + expression);
+                    }
+                }
+            } else if (varAIsMatrix) {
+                // Scalar multiplication (scalar * matrix)
+                int rows = variableInfo[varA].rows;
+                int cols = variableInfo[varA].cols;
+                variableInfo[resultVar] = VariableInfo(true, rows, cols);
+                for (int i = 1; i <= rows; ++i) {
+                    for (int j = 1; j <= cols; ++j) {
+                        expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + varA + std::to_string(i) + std::to_string(j) + "*" + varB);
+                    }
+                }
+            } else if (varBIsMatrix) {
+                // Scalar multiplication (scalar * matrix)
+                int rows = variableInfo[varB].rows;
+                int cols = variableInfo[varB].cols;
+                variableInfo[resultVar] = VariableInfo(true, rows, cols);
+                for (int i = 1; i <= rows; ++i) {
+                    for (int j = 1; j <= cols; ++j) {
+                        expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + varA + "*" + varB + std::to_string(i) + std::to_string(j));
+                    }
                 }
             }
         } else if (std::regex_match(line, match, elemMultPattern)) {
             std::string resultVar = match[1];
             std::string matrixVarA = match[2];
             std::string matrixVarB = match[3];
-            int rows = 2; // Define rows based on your context or infer from inputs
-            int cols = 2; // Define cols based on your context or infer from inputs
+
+            int rows = variableInfo[matrixVarA].rows;
+            int cols = variableInfo[matrixVarA].cols;
+            variableInfo[resultVar] = VariableInfo(true, rows, cols);
             for (int i = 1; i <= rows; ++i) {
                 for (int j = 1; j <= cols; ++j) {
                     expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + matrixVarA + std::to_string(i) + std::to_string(j) + ".*" + matrixVarB + std::to_string(i) + std::to_string(j));
@@ -124,28 +178,13 @@ std::vector<std::string> preprocess(const std::string& code) {
             std::string resultVar = match[1];
             std::string matrixVarA = match[2];
             std::string matrixVarB = match[3];
-            int rows = 2; // Define rows based on your context or infer from inputs
-            int cols = 2; // Define cols based on your context or infer from inputs
+
+            int rows = variableInfo[matrixVarA].rows;
+            int cols = variableInfo[matrixVarA].cols;
+            variableInfo[resultVar] = VariableInfo(true, rows, cols);
             for (int i = 1; i <= rows; ++i) {
                 for (int j = 1; j <= cols; ++j) {
                     expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + matrixVarA + std::to_string(i) + std::to_string(j) + "+" + matrixVarB + std::to_string(i) + std::to_string(j));
-                }
-            }
-        } else if (std::regex_match(line, match, matMultPattern)) {
-            std::string resultVar = match[1];
-            std::string matrixVarA = match[2];
-            std::string matrixVarB = match[3];
-            int rowsA = 2; // Define rows of A based on your context or infer from inputs
-            int colsA = 2; // Define cols of A (and rows of B) based on your context or infer from inputs
-            int colsB = 2; // Define cols of B based on your context or infer from inputs
-            for (int i = 1; i <= rowsA; ++i) {
-                for (int j = 1; j <= colsB; ++j) {
-                    std::string expression = "";
-                    for (int k = 1; k <= colsA; ++k) {
-                        if (k > 1) expression += "+";
-                        expression += matrixVarA + std::to_string(i) + std::to_string(k) + "*" + matrixVarB + std::to_string(k) + std::to_string(j);
-                    }
-                    expandedLines.push_back(resultVar + std::to_string(i) + std::to_string(j) + ":=" + expression);
                 }
             }
         } else {
@@ -156,9 +195,9 @@ std::vector<std::string> preprocess(const std::string& code) {
     return expandedLines;
 }
 
-std::vector<std::shared_ptr<ASTNode>> parseCode(const std::string& code) {
+std::vector<std::shared_ptr<ASTNode>> parseCode(const std::string& code, std::unordered_map<std::string, VariableInfo>& variableInfo) {
     std::vector<std::shared_ptr<ASTNode>> nodes;
-    auto lines = preprocess(code);
+    auto lines = preprocess(code, variableInfo);
 
     for (const auto& line : lines) {
         auto node = parseLine(line);
@@ -202,11 +241,9 @@ int main(int argc, char* argv[]) {
     buffer << infile.rdbuf();
     std::string code = buffer.str();
 
-    auto nodes = parseCode(code);
+    std::unordered_map<std::string, VariableInfo> variableInfo;
+    auto nodes = parseCode(code, variableInfo);
     generateXML(nodes, outfile);
 
     return 0;
 }
-
-
-
