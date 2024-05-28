@@ -1,5 +1,9 @@
-PitchCon:=PID(TargetElevation,PitchAngle,1,1,1) %test comment
+function [y]=rand()
 m:=pow(2,16)
-X := repeat (74+75* repeat (74+75* repeat (74+75* X , m ) ,m ) ,m )
-rng :=X/m
+X:=repeat (74+75* repeat (74+75* repeat (74+75* X , m ) ,m ) ,m )
+y:=X/m
+end
+
+PitchCon:=PID(TargetElevation,PitchAngle,1,1,1) %test comment
+[rng]:=rand()
 
