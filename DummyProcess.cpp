@@ -4,16 +4,6 @@
 #include <vector>
 #include <string>
 #include <regex>
-#include <unordered_map>
-
-// Define structure to hold variable metadata
-struct VariableInfo {
-    bool isMatrix;
-    int rows;
-    int cols;
-
-    VariableInfo(bool isMat = false, int r = 0, int c = 0) : isMatrix(isMat), rows(r), cols(c) {}
-};
 
 // Function to trim whitespace from a string
 std::string trim(const std::string& str) {
@@ -32,59 +22,73 @@ std::string removeComments(const std::string& line) {
     return line;
 }
 
-// Function to escape regex special characters
-std::string escapeRegex(const std::string& str) {
-    static const std::regex specialChars(R"([-[\]{}()*+?.,\^$|#\s])");
-    return std::regex_replace(str, specialChars, R"(\$&)");
+// Function to split a string by a delimiter
+std::vector<std::string> splitString(const std::string& str, const std::string& delimiter) {
+    std::vector<std::string> tokens;
+    size_t start = 0, end = 0;
+    while ((end = str.find(delimiter, start)) != std::string::npos) {
+        tokens.push_back(str.substr(start, end - start));
+        start = end + delimiter.length();
+    }
+    tokens.push_back(str.substr(start));
+    return tokens;
 }
 
-// Function to preprocess high-level code into low-level code with dummy variables
-std::vector<std::string> preprocess(const std::string& code) {
-    std::vector<std::string> expandedLines;
-    std::istringstream stream(code);
-    std::string line;
-    std::regex scalarMultPattern(R"(([a-zA-Z0-9_]+)\s*\*\s*([a-zA-Z0-9_]+))");
-    std::regex elemMultPattern(R"(([a-zA-Z0-9_]+)\s*\.\*\s*([a-zA-Z0-9_]+))");
-    std::regex addPattern(R"(([a-zA-Z0-9_]+)\s*\+\s*([a-zA-Z0-9_]+))");
+// Function to join a vector of strings into a single string with a delimiter
+std::string joinStrings(const std::vector<std::string>& strings, const std::string& delimiter) {
+    std::ostringstream os;
+    for (size_t i = 0; i < strings.size(); ++i) {
+        if (i != 0) {
+            os << delimiter;
+        }
+        os << strings[i];
+    }
+    return os.str();
+}
 
-    int dummyCounter = 0;
+// Function to replace nested function calls with dummy variables
+std::vector<std::string> replaceNestedFunctionCalls(const std::vector<std::string>& lines, int& dummyCounter) {
+    std::vector<std::string> replacedLines;
+    std::regex functionCallPattern(R"(\[(.*)\]\s*:=\s*(\w+)\((.*)\))");
+    std::regex nestedFunctionCallPattern(R"(\[(.*)\]\s*:=\s*(\w+)\((\w+\(.*\))\))");
 
-    while (std::getline(stream, line)) {
-        line = trim(removeComments(line));
+    for (const std::string& line : lines) {
         std::smatch match;
+        if (std::regex_search(line, match, nestedFunctionCallPattern)) {
+            std::string outputVars = match[1];
+            std::string outerFunction = match[2];
+            std::string innerFunctionCall = match[3];
 
-        // Preprocess composed operations
-        std::regex composedOpPattern(R"((\w+):=\s*(.+))");
-        if (std::regex_match(line, match, composedOpPattern)) {
-            std::string resultVar = match[1];
-            std::string expression = match[2];
+            // Extract inner function details
+            auto innerMatch = std::smatch();
+            std::regex_match(innerFunctionCall, innerMatch, functionCallPattern);
+            std::string innerOutputVars = innerMatch[1];
+            std::string innerFunction = innerMatch[2];
+            std::string innerInputVars = innerMatch[3];
 
-            // Replace all composed operations with dummy variables
-            std::smatch subMatch;
-            while (std::regex_search(expression, subMatch, scalarMultPattern) ||
-                   std::regex_search(expression, subMatch, elemMultPattern) ||
-                   std::regex_search(expression, subMatch, addPattern)) {
-                std::string op1 = subMatch[1];
-                std::string op2 = subMatch[2];
-                std::string op = subMatch[0];
-
-                std::string dummyVar = "dummy" + std::to_string(dummyCounter++);
-                std::string dummyAssign = dummyVar + ":=" + op;
-
-                expandedLines.push_back(dummyAssign);
-
-                expression = std::regex_replace(expression, std::regex(escapeRegex(op)), dummyVar);
+            // Generate dummy variables for the inner function outputs
+            std::vector<std::string> innerOutputs = splitString(innerOutputVars, ",");
+            std::vector<std::string> dummyVars(innerOutputs.size());
+            for (size_t i = 0; i < dummyVars.size(); ++i) {
+                dummyVars[i] = "dummy" + std::to_string(dummyCounter++);
             }
 
-            expandedLines.push_back(resultVar + ":=" + expression);
+            // Create lines for the inner and outer function calls
+            std::string dummyLine = "[" + joinStrings(dummyVars, ", ") + "] := " + innerFunction + "(" + innerInputVars + ")";
+            std::string outerLine = "[" + outputVars + "] := " + outerFunction + "(" + joinStrings(dummyVars, ", ") + ")";
+
+            // Insert the new lines in place of the original nested call
+            replacedLines.push_back(dummyLine);
+            replacedLines.push_back(outerLine);
         } else {
-            expandedLines.push_back(line);
+            replacedLines.push_back(line);
         }
     }
 
-    return expandedLines;
+    return replacedLines;
 }
 
+// Main function for processing
 int main(int argc, char* argv[]) {
     if (argc != 3) {
         std::cerr << "Usage: " << argv[0] << " <input file> <output file>\n";
@@ -107,13 +111,26 @@ int main(int argc, char* argv[]) {
     buffer << infile.rdbuf();
     std::string code = buffer.str();
 
-    auto expandedLines = preprocess(code);
+    // Split the code into lines
+    std::istringstream codeStream(code);
+    std::vector<std::string> lines;
+    std::string tempLine;
+    while (std::getline(codeStream, tempLine)) {
+        lines.push_back(tempLine);
+    }
 
-    // Write expanded lines to the output file
-    for (const auto& line : expandedLines) {
+    // Replace nested function calls with dummy variables
+    int dummyCounter = 0;
+    std::vector<std::string> replacedLines = replaceNestedFunctionCalls(lines, dummyCounter);
+
+    // Output the processed lines
+    for (const auto& line : replacedLines) {
         outfile << line << "\n";
     }
 
     return 0;
 }
+
+
+
 

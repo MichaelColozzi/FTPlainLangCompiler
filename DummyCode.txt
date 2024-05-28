@@ -7,5 +7,6 @@ function [y]=increment(x)
 y:=x+1
 end
 k:=1
-[rng]:=increment(rand(k))
+[dummy0] := ()
+[rng] := increment(dummy0)
 
